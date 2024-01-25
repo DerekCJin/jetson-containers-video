@@ -1,0 +1,12 @@
+timestamp, hostname, api, model, weight_url
+
+20240125 21:12:27, ubuntu, efficientvit-python, b1-r288, None
+
+image	label
+
+/data/datasets/tiny-imagenet-200/test/images/test_0.JPEG	158
+
+/data/datasets/tiny-imagenet-200/test/images/test_5000.JPEG	158
+
+/data/datasets/tiny-imagenet-200/test/images/test_9999.JPEG	718
+
