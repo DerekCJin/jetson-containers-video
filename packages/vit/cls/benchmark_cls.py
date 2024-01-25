@@ -1,6 +1,9 @@
 # EfficientViT: Multi-Scale Linear Attention for High-Resolution Dense Prediction
 # Han Cai, Junyan Li, Muyan Hu, Chuang Gan, Song Han
 # International Conference on Computer Vision (ICCV), 2023
+#
+# model: /data/models/efficientvit/cls/b1-r288.pt
+# run in /opt/efficientvit: python3 benchmark_cls.py --model b1-r288
 
 import argparse
 import math
@@ -22,11 +25,11 @@ from efficientvit.cls_model_zoo import create_cls_model
 from typing import Dict
 
 
-def load_image(data_path: str, mode="rgb") -> np.ndarray:
+def load_image(data_path: str, mode="rgb"):
     img = Image.open(data_path)
     if mode == "rgb":
         img = img.convert("RGB")
-    return np.array(img)
+    return img
 
 def main():
     parser = argparse.ArgumentParser()
@@ -41,7 +44,8 @@ def main():
     parser.add_argument("--weight_url", type=str, default=None)
     #parser.add_argument("--weight_url", type=str, default="/data/models/efficientvit/cls/b1_r288.pt")
     parser.add_argument("--image_path", type=str, default="assets/fig/cat.jpg") #get 1 image in tiny_imagenet/test folder
-    parser.add_argument("--output_path", type=str, default="/data/benchmarks/efficientvit_cls.txt")
+    parser.add_argument("--output_path", type=str, default="/data/benchmarks/benchmark_efficientvit_cls.txt")
+    parser.add_argument('-s', '--save', type=str, default='/data/benchmarks/benchmark_efficientvit_cls.txt', help='txt file to save benchmarking results to')
 
     args = parser.parse_args()
     if args.gpu == "all":
@@ -78,25 +82,35 @@ def main():
     for img_path in args.images:
         # load image
         image = load_image(img_path)
-        oh, ow, _ = image.shape
-        image = cv2.resize(image, dsize=(ow, oh))
-        #image = transform(image)
+        #oh, ow, _ = image.shape
+        #image = cv2.resize(image, dsize=(ow, oh))
+        image = transform(image)
         #output = model(images)
+        image = image.unsqueeze(0)
         output = model(image)
-        predicted_labels[img_path] = output
-        print(f"{img_Path}:{output}")
+        l = torch.argmax(output)
+        #l = torch.max(output.data,1)
+        predicted_labels[img_path] = l
+        print(f"{img_path}:{l}")
 
-    
+    s=str(predicted_labels)
+    print(f"********{s}") 
+    print(f"args.save = {args.save}")
     if args.save:
+
         if not os.path.isfile(args.save):  # txt header
             with open(args.save, 'w') as file:
-                file.write(f"timestamp, hostname, api, model, weight_url\n")
+                file.write(f"timestamp, hostname, api, model, weight_url\n\n")
+        else:
+            os.remove(args.save)
+            with open(args.save, 'w') as file:
+                file.write(f"timestamp, hostname, api, model, weight_url\n\n")
         with open(args.save, 'a') as file:
             file.write(f"{datetime.datetime.now().strftime('%Y%m%d %H:%M:%S')}, {socket.gethostname()}, ")
             file.write(f"efficientvit-python, {args.model}, {args.weight_url}\n\n")
-
-            for k,v in predicted_labels:
-                file.write(f"{k}\t{v}")
+            #file.write(f"{str(predicted_labels)}\n\n")  
+            for k,v in predicted_labels.items():
+                file.write(f"{k}\t{v}\n\n")
 
 if __name__ == "__main__":
     main()
